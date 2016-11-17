@@ -1,2 +1,2 @@
-# lep-docker
-Linux Nginx PHP docker image
+# lep-wp-docker
+Linux Nginx PHP docker image for WP
