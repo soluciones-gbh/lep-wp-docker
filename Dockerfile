@@ -53,7 +53,9 @@ RUN sed -i "s/error_reporting = .*/error_reporting = E_ALL/" /etc/php5/cli/php.i
     sed -i "s/post_max_size = .*/post_max_size = 100M/" /etc/php5/fpm/php.ini && \
     sed -i "s/;date.timezone.*/date.timezone = UTC/" /etc/php5/fpm/php.ini && \
     sed -i "s/error_reporting = .*/error_reporting = E_ALL/" /etc/php5/fpm/php.ini && \
-    sed -i "s/display_errors = .*/display_errors = On/" /etc/php5/fpm/php.ini
+    sed -i "s/display_errors = .*/display_errors = On/" /etc/php5/fpm/php.ini && \
+    sed -i "s/variables_order = .*/variables_order = \"EGPCS\"/" /etc/php5/fpm/php.ini
+     
     
 # Add our init script
 ADD run.sh /run.sh
