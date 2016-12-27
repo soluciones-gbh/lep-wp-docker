@@ -20,6 +20,7 @@ RUN apt-get -y update && \
   	nginx \
   	curl \
   	zip \
+    git \
   	supervisor
 
 # Install WP CLI
