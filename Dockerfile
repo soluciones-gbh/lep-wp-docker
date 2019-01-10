@@ -6,7 +6,7 @@ LABEL maintainer="Angel Adames <a.adames@gbh.com.do>"
 # Environment
 ENV DEBIAN_FRONTEND noninteractive
 
-ENV PHP_VERSION 7.2
+ENV PHP_VERSION 7.3
 
 ENV NVM_DIR /usr/local/bin/nvm
 ENV NVM_VERSION 0.33.11
