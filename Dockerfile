@@ -83,9 +83,9 @@ RUN apt install \
   php${PHP_VERSION}-xml \
   php${PHP_VERSION}-zip
 
-RUN update-alternatives --set php /usr/bin/php${PHP_VERSION}}; \
-  update-alternatives --set php-config /usr/bin/php-config${PHP_VERSION}}; \
-  update-alternatives --set phpize /usr/bin/phpize${PHP_VERSION}}
+RUN update-alternatives --set php /usr/bin/php${PHP_VERSION}; \
+  update-alternatives --set php-config /usr/bin/php-config${PHP_VERSION}; \
+  update-alternatives --set phpize /usr/bin/phpize${PHP_VERSION}
 
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php; \
