@@ -6,7 +6,7 @@ _Not meant for production._
 
  Linux, Nginx, PHP Docker image for WordPress Apps!
 
-This is a repository meant to support your development environment configuration activities by supplying a LEP (Linux, Nginx, PHP) docker image. It is not meant for production but can be easily tweaked if necessary.T [Laravel Settler](https://github.com/laravel/settler) provisioning script.
+This is a repository meant to support your development environment configuration activities by supplying a LEP (Linux, Nginx, PHP) docker image. It is not meant for production but can be easily tweaked if necessary. It is based on [lep-docker](https://github.com/angelmadames/lep-docker) image.
 
 It uses the latest version of Ubuntu. Different branches were set up to configure different versions of PHP. All images are available in [Docker Hub](https://hub.docker.com/r/solucionesgbh/lepw).
 
