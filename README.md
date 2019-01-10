@@ -1,27 +1,76 @@
-# lep-wp-docker
-Linux Nginx PHP docker image for wordpress
+# LEP WordPress Docker Image
 
-*NOT FOR PRODUCTION*
+## Overview
 
-## How to use (Sample Dockerfile)
-```
-FROM solucionesgbh/lepw:latest
+_Not meant for production._
 
-# Delete sample app
-RUN rm -fr /app/*
+ Linux, Nginx, PHP Docker image for WordPress Apps!
 
-# Copy our app into the app folder
-COPY . /app
+This is a repository meant to support your development environment configuration activities by supplying a LEP (Linux, Nginx, PHP) docker image. It is not meant for production but can be easily tweaked if necessary.T [Laravel Settler](https://github.com/laravel/settler) provisioning script.
 
-# Copy our deploy config as local-config.php (needs wp-config to load local-config.php)
-COPY .deploy/wp-config.php /app/local-config.php
+It uses the latest version of Ubuntu. Different branches were set up to configure different versions of PHP. All images are available in [Docker Hub](https://hub.docker.com/r/solucionesgbh/lepw).
+s
+## Technical requirements
 
-# Bower install
-RUN cd /app/<<path to theme>> && bower install --allow-root --config.interactive=false && npm install
+- [Docker 18.06^](https://docs.docker.com/install/linux/docker-ce/ubuntu/)
+- [Docker Compose 1.23^](https://docs.docker.com/compose/install/#install-compose)
 
-# NPM install
-RUN cd /app/<<path to theme>> && npm install
+## Example Dockerfile for your WordPress
 
-# Run our command (it runs chmod -R 777 on /app folder)
+```Dockerfile
+FROM solucionesgbh/lepw:7.3
+
+# Set the location of your theme(s)
+ENV ThemePath myTheme/
+
+# Set working directory
+WORKDIR /app
+
+# Copy your App files
+COPY ..
+
+# Copy your deploy config as local-config.php
+# Note: Needs wp-config to load local-config.php
+COPY config_files/local-config.php local-config.php
+
+# Set working directory as ThemePath
+WORKDIR ${ThemePath}
+
+# Old projects might be using bower. Consider migrating from this.
+# RUN bower install --allow-root --config.interactive=false
+
+# Install Node dependencies. npm|yarn are avaialble.
+RUN yarn install
+
+# Run the app!
 CMD ["/run.sh"]
+```
+
+Note: Available versions can be consulted [here](https://hub.docker.com/r/solucionesgbh/lepw/tags).
+
+## Build
+
+Once you have your Dockerfile ready, build it:
+
+```bash
+imageName=myApp
+version=1.0
+
+docker build -t ${imageName}:${version} .
+```
+
+In the above command, feel free to replace `imageName` and `version` to whatever fits your needs. 
+
+## Test Locally
+
+```bash
+docker container run \
+  --rm \
+  --name myLEPWContainerTest \
+  --port 8000:80 \
+  ${imageName}:${version}
+
+# Note: Supervisor is the service configured in the image to maintain nginx and php-fpm as entrypoints.
+
+Go to http://localhost:8000. Your WordPress site should be up and running!
 ```
