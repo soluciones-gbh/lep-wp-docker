@@ -162,6 +162,7 @@ RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli
 # Add configuration
 COPY nginx/default /etc/nginx/sites-available
 COPY supervisor /etc/supervisor/conf.d
+RUN ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 
 # Clean up
 RUN apt autoremove -y; \
