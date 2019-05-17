@@ -1,6 +1,6 @@
 
 upstream php {
-  server unix:/run/php/php5.6-fpm.sock;
+  server unix:/run/php/php7.3-fpm.sock;
 }
 
 server {
