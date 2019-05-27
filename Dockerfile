@@ -169,14 +169,16 @@ RUN apt autoremove -y; \
   apt clean -y
 
 # Add run.sh script
+
 COPY scripts/run.sh /run.sh
 RUN chmod 755 /run.sh
 
 # Ensuring permissions are OK
 RUN mkdir -p /run/php
 RUN chown -R homestead:homestead /home/homestead
+
 WORKDIR /app
 
-EXPOSE 80 443 22
+EXPOSE 80 443
 
 CMD ["/run.sh"]
