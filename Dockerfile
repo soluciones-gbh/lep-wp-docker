@@ -7,11 +7,12 @@ LABEL maintainer="Angel Adames <a.adames@gbh.com.do>"
 ENV DEBIAN_FRONTEND noninteractive
 
 ENV PHP_VERSION 7.3
+ENV NVM_VERSION 0.34.0
+ENV NODE_VERSION 10.16.0
 
-ENV NVM_DIR /usr/local/bin/nvm
-ENV NVM_VERSION 0.33.11
+ENV NODE_PATH $NVM_DIR/v$NODE_VERSION/lib/node_modules
+ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
 
-ENV NODE_VERSION 10.15.0
 
 # Update package list and upgrade available packages
 RUN apt update; apt upgrade -y
@@ -179,6 +180,6 @@ RUN chown -R homestead:homestead /home/homestead
 
 WORKDIR /app
 
-EXPOSE 80 443
+EXPOSE 80
 
 CMD ["/run.sh"]
