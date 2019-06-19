@@ -5,29 +5,23 @@ LABEL maintainer="Angel Adames <a.adames@gbh.com.do>"
 
 # Environment
 ENV DEBIAN_FRONTEND noninteractive
-
 ENV PHP_VERSION 7.3
-ENV NVM_VERSION 0.34.0
-ENV NODE_VERSION 10.16.0
-
-ENV NVM_DIR /usr/local/nvm
-
-ENV NODE_PATH $NVM_DIR/v$NODE_VERSION/lib/node_modules
-ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
-
 
 # Update package list and upgrade available packages
 RUN apt update; apt upgrade -y
 
-# Add PPAs and repositories
+# Ensure common dependencies are installed
 RUN apt install -y \
   software-properties-common \
   ca-certificates \
-  curl; \
-  apt-add-repository ppa:nginx/stable -y; \
-  apt-add-repository ppa:ondrej/php -y; \
-  curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -; \
+  curl
+
+# Add PPAs and repositories
+RUN apt-add-repository ppa:nginx/stable -y
+RUN apt-add-repository ppa:ondrej/php -y
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
   echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
+RUN curl -sL https://deb.nodesource.com/setup_10.x | bash -
 
 # Update package list one more time
 RUN apt update
@@ -44,24 +38,18 @@ RUN apt install --fix-missing -y \
   libpcre3-dev \
   libpng-dev \
   mcrypt \
-  nano \
+  nginx \
+  nodejs \
   software-properties-common \
   supervisor \
   vim \
-  yarn \
-  zsh
+  yarn
 
-# Configure locale
+# Configure locale and timezone
 RUN echo "LC_ALL=en_US.UTF-8" >> /etc/default/locale
-
-# Set my timezone
 RUN ln -sf /usr/share/zoneinfo/UTC /etc/localtime
 
-# User configuration
-RUN adduser homestead; \
-  usermod -p $(echo secret | openssl passwd -1 -stdin) homestead
-
-# PHP installation
+# PHP and PHP dependencies installation
 RUN apt install \
   --allow-downgrades \
   --allow-remove-essential \
@@ -84,104 +72,80 @@ RUN apt install \
   php${PHP_VERSION}-soap \
   php${PHP_VERSION}-sqlite3 \
   php${PHP_VERSION}-xml \
-  php${PHP_VERSION}-zip
-
-RUN update-alternatives --set php /usr/bin/php${PHP_VERSION}; \
-  update-alternatives --set php-config /usr/bin/php-config${PHP_VERSION}; \
-  update-alternatives --set phpize /usr/bin/phpize${PHP_VERSION}
-
-# Install Composer
-RUN curl -sS https://getcomposer.org/installer | php; \
-  mv composer.phar /usr/local/bin/composer
-RUN printf "\nPATH=\"/home/homestead/.composer/vendor/bin:\$PATH\"\n" | tee -a /home/homestead/.profile
-
-# PHP configuration
-# Customize PHP CLI configuration
-RUN sed -i "s/error_reporting = .*/error_reporting = E_ALL/" /etc/php/${PHP_VERSION}/cli/php.ini; \
-  sed -i "s/;date.timezone.*/date.timezone = UTC/" /etc/php/${PHP_VERSION}/cli/php.ini; \
-  sed -i "s/display_errors = .*/display_errors = On/" /etc/php/${PHP_VERSION}/cli/php.ini; \
-  sed -i "s/memory_limit = .*/memory_limit = 512M/" /etc/php/${PHP_VERSION}/cli/php.ini
-
-# Install Nginx & PHP-FPM
-RUN apt-get install -y \
-  --allow-change-held-packages \
-  --allow-downgrades \
-  --allow-remove-essential \
-  nginx \
+  php${PHP_VERSION}-zip \
   php${PHP_VERSION}-fpm
 
-# Remove Nginx default configuration file
-RUN rm /etc/nginx/sites-enabled/default; \
-  rm /etc/nginx/sites-available/default
+# Update package alternatives
+RUN update-alternatives --set php /usr/bin/php${PHP_VERSION} && \
+  update-alternatives --set php-config /usr/bin/php-config${PHP_VERSION} && \
+  update-alternatives --set phpize /usr/bin/phpize${PHP_VERSION}
 
-# Customize PHP-FPM configuration
-RUN echo "xdebug.remote_enable = 1" >> /etc/php/${PHP_VERSION}/mods-available/xdebug.ini; \
-  echo "xdebug.remote_connect_back = 1" >> /etc/php/${PHP_VERSION}/mods-available/xdebug.ini; \
-  echo "xdebug.remote_port = 9000" >> /etc/php/${PHP_VERSION}/mods-available/xdebug.ini; \
-  echo "xdebug.max_nesting_level = 512" >> /etc/php/${PHP_VERSION}/mods-available/xdebug.ini; \
-  echo "opcache.revalidate_freq = 0" >> /etc/php/${PHP_VERSION}/mods-available/opcache.ini
+# Install Composer package manager
+RUN curl -sS https://getcomposer.org/installer | php && \
+  mv composer.phar /usr/local/bin/composer
 
-RUN sed -i "s/error_reporting = .*/error_reporting = E_ALL/" /etc/php/${PHP_VERSION}/fpm/php.ini; \
-  sed -i "s/display_errors = .*/display_errors = On/" /etc/php/${PHP_VERSION}/fpm/php.ini; \
-  sed -i "s/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/" /etc/php/${PHP_VERSION}/fpm/php.ini; \
-  sed -i "s/memory_limit = .*/memory_limit = 512M/" /etc/php/${PHP_VERSION}/fpm/php.ini; \
-  sed -i "s/upload_max_filesize = .*/upload_max_filesize = 100M/" /etc/php/${PHP_VERSION}/fpm/php.ini; \
-  sed -i "s/post_max_size = .*/post_max_size = 100M/" /etc/php/${PHP_VERSION}/fpm/php.ini; \
+# PHP CLI configuration
+RUN sed -i "s/error_reporting = .*/error_reporting = E_ALL/" /etc/php/${PHP_VERSION}/cli/php.ini && \
+  sed -i "s/;date.timezone.*/date.timezone = UTC/" /etc/php/${PHP_VERSION}/cli/php.ini && \
+  sed -i "s/display_errors = .*/display_errors = On/" /etc/php/${PHP_VERSION}/cli/php.ini && \
+  sed -i "s/memory_limit = .*/memory_limit = 512M/" /etc/php/${PHP_VERSION}/cli/php.ini
+
+# PHP FPM configuration
+RUN sed -i "s/error_reporting = .*/error_reporting = E_ALL/" /etc/php/${PHP_VERSION}/fpm/php.ini && \
+  sed -i "s/display_errors = .*/display_errors = On/" /etc/php/${PHP_VERSION}/fpm/php.ini && \
+  sed -i "s/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/" /etc/php/${PHP_VERSION}/fpm/php.ini && \
+  sed -i "s/memory_limit = .*/memory_limit = 512M/" /etc/php/${PHP_VERSION}/fpm/php.ini && \
+  sed -i "s/upload_max_filesize = .*/upload_max_filesize = 100M/" /etc/php/${PHP_VERSION}/fpm/php.ini && \
+  sed -i "s/post_max_size = .*/post_max_size = 100M/" /etc/php/${PHP_VERSION}/fpm/php.ini && \
   sed -i "s/;date.timezone.*/date.timezone = UTC/" /etc/php/${PHP_VERSION}/fpm/php.ini
 
-RUN printf "[openssl]\n" | tee -a /etc/php/${PHP_VERSION}/fpm/php.ini; \
+RUN echo "xdebug.remote_enable = 1" >> /etc/php/${PHP_VERSION}/mods-available/xdebug.ini && \
+  echo "xdebug.remote_connect_back = 1" >> /etc/php/${PHP_VERSION}/mods-available/xdebug.ini && \
+  echo "xdebug.remote_port = 9000" >> /etc/php/${PHP_VERSION}/mods-available/xdebug.ini && \
+  echo "xdebug.max_nesting_level = 512" >> /etc/php/${PHP_VERSION}/mods-available/xdebug.ini && \
+  echo "opcache.revalidate_freq = 0" >> /etc/php/${PHP_VERSION}/mods-available/opcache.ini
+
+# Remove Nginx default configuration file
+RUN rm /etc/nginx/sites-enabled/default && \
+  rm /etc/nginx/sites-available/default
+
+# Add OpenSSL certificate authority configuration to PHP FPM
+RUN printf "[openssl]\n" | tee -a /etc/php/${PHP_VERSION}/fpm/php.ini && \
   printf "openssl.cainfo = /etc/ssl/certs/ca-certificates.crt\n" | tee -a /etc/php/${PHP_VERSION}/fpm/php.ini
 
-RUN printf "[curl]\n" | tee -a /etc/php/${PHP_VERSION}/fpm/php.ini; \
+# Add cURL certificate authority configuration to PHP FPM
+RUN printf "[curl]\n" | tee -a /etc/php/${PHP_VERSION}/fpm/php.ini && \
   printf "curl.cainfo = /etc/ssl/certs/ca-certificates.crt\n" | tee -a /etc/php/${PHP_VERSION}/fpm/php.ini
 
 # Disable x-debug on the CLI
 RUN phpdismod -s cli xdebug
 
-# Customize Nginx & PHP-FPM to configured user
-RUN sed -i "s/user www-data;/user homestead;/" /etc/nginx/nginx.conf; \
-  sed -i "s/# server_names_hash_bucket_size.*/server_names_hash_bucket_size 64;/" /etc/nginx/nginx.conf; \
-  sed -i "s/user = www-data/user = homestead/" /etc/php/${PHP_VERSION}/fpm/pool.d/www.conf; \
-  sed -i "s/group = www-data/group = homestead/" /etc/php/${PHP_VERSION}/fpm/pool.d/www.conf
-
-# Add homestead user to required groups
-RUN usermod -aG sudo homestead; usermod -aG www-data homestead
-
-# Add NVM to the system
-RUN mkdir -p $NVM_DIR; \
-  curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash
-
-# Install Node using specified version in the system
-RUN . $NVM_DIR/nvm.sh; \
-  nvm install $NODE_VERSION; \
-  nvm alias default $NODE_VERSION; \
-  nvm use default
-
-# Install wp-cli
-RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar; \
-  chmod +x wp-cli.phar; \
+# Install WordPress CLI
+RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar && \
+  chmod +x wp-cli.phar && \
   mv wp-cli.phar /usr/local/bin/wp
 
-# Add configuration
+# Add nginx and supervisor services configuration
 COPY nginx/default /etc/nginx/sites-available
 COPY supervisor /etc/supervisor/conf.d
+
+# Enable default nginx configuration
 RUN ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 
-# Clean up
-RUN apt autoremove -y; \
-  apt clean -y
+# Clean up image
+RUN apt autoremove -y; apt clean -y
 
 # Add run.sh script
-
 COPY scripts/run.sh /run.sh
 RUN chmod 755 /run.sh
 
-# Ensuring permissions are OK
+# Create PHP run directory
 RUN mkdir -p /run/php
-RUN chown -R homestead:homestead /home/homestead
 
+# Set working directory
 WORKDIR /app
 
+# Expose default HTTP port
 EXPOSE 80
 
 CMD ["/run.sh"]
