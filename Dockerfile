@@ -56,10 +56,12 @@ RUN apt install \
   --allow-change-held-packages -y \
   php-pear \
   php-xdebug \
+  php${PHP_VERSION}-mcrypt \
   php${PHP_VERSION}-bcmath \
   php${PHP_VERSION}-cli \
   php${PHP_VERSION}-curl \
   php${PHP_VERSION}-dev \
+  php${PHP_VERSION}-fpm \
   php${PHP_VERSION}-gd \
   php${PHP_VERSION}-imap \
   php${PHP_VERSION}-intl \
@@ -72,8 +74,7 @@ RUN apt install \
   php${PHP_VERSION}-soap \
   php${PHP_VERSION}-sqlite3 \
   php${PHP_VERSION}-xml \
-  php${PHP_VERSION}-zip \
-  php${PHP_VERSION}-fpm
+  php${PHP_VERSION}-zip
 
 # Update package alternatives
 RUN update-alternatives --set php /usr/bin/php${PHP_VERSION} && \
