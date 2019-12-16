@@ -56,7 +56,6 @@ RUN apt install \
   --allow-change-held-packages -y \
   php-pear \
   php-xdebug \
-  php${PHP_VERSION}-mcrypt \
   php${PHP_VERSION}-bcmath \
   php${PHP_VERSION}-cli \
   php${PHP_VERSION}-curl \
