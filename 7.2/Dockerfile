@@ -80,7 +80,7 @@ RUN rm /etc/nginx/sites-enabled/default && \
 COPY nginx/default.conf /etc/nginx/sites-available
 RUN ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 RUN mkdir -p /run/php
-COPY supervisord /etc/supervisor/conf.d
+COPY supervisor /etc/supervisor/conf.d
 
 # Install WordPress CLI
 RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar && \
