@@ -1,76 +1,76 @@
-# LEP WordPress Docker Image
+# LEP WordPress Docker
 
-## Overview
+LEP comes from the original LAMP stack which was based on Linux, Apache, MySQL and PHP. LEP is a docker-oriented alternative that uses Nginx in favor Apache and separates the MySQL dependency since it can be configured as a service using docker compose.
 
-_Not meant for production._
+**Important Note**: This image is not meant for production use. It was designed to serve as an auxiliary image for development and testing environments.
 
- Linux, Nginx, PHP Docker image for WordPress Apps!
+## Included dependencies
 
-This is a repository meant to support your development environment configuration activities by supplying a LEP (Linux, Nginx, PHP) docker image. It is not meant for production but can be easily tweaked if necessary. It is based on [lep-docker](https://github.com/angelmadames/lep-docker) image.
+- Ubuntu Focal
+- Nodejs 14.x
+- git
+- Nginx
+- WordPress CLI
+- PHP (7.4)
+  - php-cli
+  - php-curl
+  - php-dev
+  - php-fpm
+  - php-gd
+  - php-imap
+  - php-mbstring
+  - php-mysql
+  - php-pgsql
+  - php-readline
+  - php-xml
+  - php-zip
 
-It uses the latest version of Ubuntu. Different branches were set up to configure different versions of PHP. All images are available in [Docker Hub](https://hub.docker.com/r/solucionesgbh/lepw).
+## Relevant considerations
 
-## Technical requirements
+- The default user for your web files should be `www-data`. If the permissions of your files are not properly set, you might end up with HTTP 403 errors from the web server.
 
-- [Docker 18.06^](https://docs.docker.com/install/linux/docker-ce/ubuntu/)
-- [Docker Compose 1.23^](https://docs.docker.com/compose/install/#install-compose)
+## How To Use
 
-## Example Dockerfile for your WordPress
+To use this image, you should set it as your base image using the `FROM` instruction:
 
-```Dockerfile
-FROM solucionesgbh/lepw:7.3
+```docker
+FROM solucionesgbh/lepw:${PHP_VERSION}
 
-# Set the location of your theme(s)
-ENV ThemePath myTheme/
-
-# Set working directory
+# Copy your app into the /app folder
 WORKDIR /app
+COPY . .
 
-# Copy your App files
-COPY ..
+# Install your dependencies
+RUN composer install --no-interaction
+RUN npm ci
 
-# Copy your deploy config as local-config.php
-# Note: Needs wp-config to load local-config.php
-COPY config_files/local-config.php local-config.php
+# Configure your environment seetings
+COPY --chown=www-data:www-data path/to/your/example/.env .env
+COPY --chown=www-data:www-data path/to/your/example/local-config.php local-config.php
 
-# Set working directory as ThemePath
-WORKDIR ${ThemePath}
+# Ensures permissions of the app folder are set to www-data
+COPY --chown=www-data:www-data .
 
-# Old projects might be using bower. Consider migrating from this.
-# RUN bower install --allow-root --config.interactive=false
-
-# Install Node dependencies. npm|yarn are avaialble.
-RUN yarn install
-
-# Run the app!
-CMD ["/run.sh"]
+# Optional: Specify the supervisord command
+# You can just leave this out and it will use the base image default
+CMD ["/usr/bin/supervisord", "--nodaemon", "-c", "/etc/supervisor/supervisord.conf"]
 ```
 
-Note: Available versions can be consulted [here](https://hub.docker.com/r/solucionesgbh/lepw/tags).
+## Build your image
 
-## Build
+To build your custom image, on your terminal execute the following `docker build` command:
 
-Once you have your Dockerfile ready, build it:
-
-```bash
-imageName=myApp
-version=1.0
-
-docker build -t ${imageName}:${version} .
+```shell
+docker build . -t myapp:myversion
 ```
 
-In the above command, feel free to replace `imageName` and `version` to whatever fits your needs.
+## Run your app
 
-## Test Locally
+To run your custom container, on your terminal execute the following `docker run` command:
 
-```bash
-docker container run \
-  --rm \
-  --name myLEPWContainerTest \
-  --port 8000:80 \
-  ${imageName}:${version}
-
-# Note: Supervisor is the service configured in the image to maintain nginx and php-fpm as entrypoints.
-
-Go to http://localhost:8000. Your WordPress site should be up and running!
+```shell
+docker run \
+  --name myAppContainer \
+  -p "${myPublishedPort}:80" \
+  myapp:myversion
 ```

@@ -1,74 +1,50 @@
-FROM ubuntu:bionic
+FROM ubuntu:focal
 
 # Maintainer
 LABEL maintainer="Angel Adames <a.adames@gbh.com.do>"
 
 # Environment
-ENV DEBIAN_FRONTEND noninteractive
-ENV PHP_VERSION 7.3
+ENV DEBIAN_FRONTEND="noninteractive" \
+    PHP_VERSION="8.0" \
+    NODE_VERSION="14.x" \
+    LANG="en_US.utf8"
 
 # Update package list and upgrade available packages
-RUN apt update && \
-    apt upgrade -yq && \
-    apt install -y \
-      software-properties-common \
-      ca-certificates \
-      curl
+RUN apt update && apt upgrade -yq && apt install -y \
+    curl \
+    locales \
+    software-properties-common
 
 # Add PPAs and repositories
 RUN apt-add-repository ppa:nginx/stable -y && \
     apt-add-repository ppa:ondrej/php -y && \
-    curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
-    echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
-    curl -sL https://deb.nodesource.com/setup_12.x | bash -
+    curl -sL https://deb.nodesource.com/setup_${NODE_VERSION} | bash -
 
 # Update package list one more time
-RUN apt update && \
-    apt install --fix-missing -y \
-      apt-utils \
-      bash-completion \
-      build-essential \
-      cifs-utils \
-      curl \
-      git \
-      libmcrypt4 \
-      libpcre3-dev \
-      libpng-dev \
-      mcrypt \
-      nginx \
-      nodejs \
-      software-properties-common \
-      supervisor \
-      vim \
-      yarn
+RUN apt update && apt install --fix-missing -y \
+    build-essential \
+    git \
+    nginx \
+    nodejs \
+    supervisor \
+    vim
 
 # Configure locale and timezone
-RUN echo "LC_ALL=en_US.UTF-8" >> /etc/default/locale && \
-    ln -sf /usr/share/zoneinfo/UTC /etc/localtime
+RUN localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 
 # PHP and PHP dependencies installation
-RUN apt install -y \
+RUN apt install -yq \
     --allow-downgrades \
     --allow-remove-essential \
     --allow-change-held-packages \
-    php-pear \
-    php-xdebug \
-    php${PHP_VERSION}-bcmath \
     php${PHP_VERSION}-cli \
     php${PHP_VERSION}-curl \
     php${PHP_VERSION}-dev \
     php${PHP_VERSION}-fpm \
     php${PHP_VERSION}-gd \
-    php${PHP_VERSION}-imap \
-    php${PHP_VERSION}-intl \
-    php${PHP_VERSION}-ldap \
     php${PHP_VERSION}-mbstring \
-    php${PHP_VERSION}-memcached \
     php${PHP_VERSION}-mysql \
-    php${PHP_VERSION}-pgsql \
     php${PHP_VERSION}-readline \
-    php${PHP_VERSION}-soap \
-    php${PHP_VERSION}-sqlite3 \
     php${PHP_VERSION}-xml \
     php${PHP_VERSION}-zip
 
@@ -77,9 +53,8 @@ RUN update-alternatives --set php /usr/bin/php${PHP_VERSION} && \
     update-alternatives --set php-config /usr/bin/php-config${PHP_VERSION} && \
     update-alternatives --set phpize /usr/bin/phpize${PHP_VERSION}
 
-# Install Composer package manager
-RUN curl -sS https://getcomposer.org/installer | php && \
-    mv composer.phar /usr/local/bin/composer
+# Copy Composer binary
+COPY --from=composer /usr/bin/composer /usr/bin/composer
 
 # PHP CLI & FPM configuration
 RUN sed -i "s/error_reporting = .*/error_reporting = E_ALL/" /etc/php/${PHP_VERSION}/cli/php.ini && \
@@ -99,32 +74,23 @@ RUN sed -i "s/error_reporting = .*/error_reporting = E_ALL/" /etc/php/${PHP_VERS
     echo "xdebug.max_nesting_level = 512" >> /etc/php/${PHP_VERSION}/mods-available/xdebug.ini && \
     echo "opcache.revalidate_freq = 0" >> /etc/php/${PHP_VERSION}/mods-available/opcache.ini
 
-# Remove Nginx default configuration file
+# Add nginx and supervisor services configuration
 RUN rm /etc/nginx/sites-enabled/default && \
     rm /etc/nginx/sites-available/default
-
-# Add OpenSSL/cURL certificate authority configuration to PHP FPM
-RUN printf "[openssl]\n" | tee -a /etc/php/${PHP_VERSION}/fpm/php.ini && \
-    printf "openssl.cainfo = /etc/ssl/certs/ca-certificates.crt\n" | tee -a /etc/php/${PHP_VERSION}/fpm/php.ini && \
-    printf "[curl]\n" | tee -a /etc/php/${PHP_VERSION}/fpm/php.ini && \
-    printf "curl.cainfo = /etc/ssl/certs/ca-certificates.crt\n" | tee -a /etc/php/${PHP_VERSION}/fpm/php.ini
+COPY nginx/default.conf /etc/nginx/sites-available
+RUN ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
+RUN mkdir -p /run/php
+COPY supervisord /etc/supervisor/conf.d
 
 # Install WordPress CLI
 RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar && \
     chmod +x wp-cli.phar && \
     mv wp-cli.phar /usr/local/bin/wp
 
-# Add nginx and supervisor services configuration
-COPY nginx/default /etc/nginx/sites-available
-COPY supervisor /etc/supervisor/conf.d
-
-# Enable default nginx configuration
-RUN ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
-
-# Add run.sh script
-COPY scripts/run.sh /run.sh
-RUN chmod 755 /run.sh && \
-    mkdir -p /run/php
+# Clean up image
+RUN rm -rf /var/lib/apt/lists/* && \
+    apt autoremove -y && \
+    apt clean -y
 
 # Set working directory
 WORKDIR /app
@@ -132,4 +98,4 @@ WORKDIR /app
 # Expose default HTTP port
 EXPOSE 80
 
-CMD ["/run.sh"]
+CMD ["/usr/bin/supervisord", "--nodaemon", "-c", "/etc/supervisor/supervisord.conf"]
