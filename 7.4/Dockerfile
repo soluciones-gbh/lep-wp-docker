@@ -78,7 +78,7 @@ RUN sed -i "s/error_reporting = .*/error_reporting = E_ALL/" /etc/php/${PHP_VERS
 # Add nginx and supervisor services configuration
 RUN rm /etc/nginx/sites-enabled/default && \
     rm /etc/nginx/sites-available/default
-COPY nginx/default.conf /etc/nginx/sites-available
+COPY nginx/default.conf /etc/nginx/sites-available/default
 RUN ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 RUN mkdir -p /run/php
 COPY supervisor /etc/supervisor/conf.d
